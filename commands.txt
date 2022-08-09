@@ -7,7 +7,9 @@
 
 
 # command to run the uvicorn web server
-==> uvicorn main:app --reload
+==> eg: uvicorn app.main:app --reload
+OR
+==> uvicorn app.main:app --host localhost --port 8000 --reload
 
 
 # Command to install SQLAlchemy (ORM library):
