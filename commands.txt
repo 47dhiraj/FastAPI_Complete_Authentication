@@ -53,3 +53,7 @@ Step 2: Execute this command to install the uuid-ossp plugin
 # Command to install FastAPI JWT Auth extension:
 ==> pip install 'fastapi-jwt-auth[asymmetric]'
 
+
+# Command to install fastapi-mail:
+==> pip install fastapi-mail
+
