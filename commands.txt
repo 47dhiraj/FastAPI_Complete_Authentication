@@ -23,4 +23,31 @@ OR
 ==> pip install psycopg2-binary
 
 
+# Follow the steps below to install the UUID extension in the posgtres database:
+
+Step 1: Access the running Postgres database with this command
+# syntax ==> psql -U admin <database name>
+# eg ==> psql -U admin fastapi_auth
+
+Step 2: Execute this command to install the uuid-ossp plugin
+==> CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+
+\q to exit
+
+
+# Command to install python package python-dotenv:
+==> pip install python-dotenv
+
+
+# Command to install python package alembic for creating migrations file:
+==> pip install alembic
+
+
+# Command to install passlib for hashing/encrypting password using bcrypt:
+==> pip install "passlib[bcrypt]"
+
+
+# Command to install FastAPI JWT Auth extension:
+==> pip install 'fastapi-jwt-auth[asymmetric]'
 
