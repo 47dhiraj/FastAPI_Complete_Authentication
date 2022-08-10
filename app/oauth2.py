@@ -63,4 +63,5 @@ def require_user(db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Token is invalid or has expired')
 
 
-    return user_id
+    return user_id                      # finally user ko id return gareko
+
