@@ -6,7 +6,6 @@ from ..database import get_db
 from app.oauth2 import require_user
 
 
-# APIRouter object/instance create gareko
 router = APIRouter()
 
 
@@ -22,15 +21,15 @@ def get_posts(db: Session = Depends(get_db), limit: int = 10, page: int = 1, sea
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
 def create_post(post: schemas.CreatePostSchema, db: Session = Depends(get_db), owner_id: str = Depends(require_user)):
-    post.user_id = uuid.UUID(owner_id)                      # jwt batw aayeko owner_id or user_id chai uuid hudaina, so database ma save garne bela ma chai uuid format ma convert gareko, becuase, hamile database ko table ma UUID format ma id lai rakhi rako chau
+    post.user_id = uuid.UUID(owner_id)                      
 
-    new_post = models.Post(**post.dict())                   # new post object create gareko
+    new_post = models.Post(**post.dict())                   
 
     db.add(new_post)
-    db.commit()                                             # database ma save gareko
+    db.commit()                                            
     db.refresh(new_post)
 
-    return new_post                                         # newly create gareko post lai return gareko
+    return new_post                                    
 
 
 
@@ -43,15 +42,15 @@ def update_post(id: str, post: schemas.UpdatePostSchema, db: Session = Depends(g
     if not post_to_update:
         raise HTTPException(status_code=status.HTTP_200_OK, detail=f'Post with this id: {id}, not found')
 
-    # checking if the user is owner of the post
-    if post_to_update.user_id != uuid.UUID(user_id):            # uuid.UUID(user_id) kina gareko vanda, jwt batw access gareko user_id lai ORM query ma user garna ko lagi UUID ma convert garna parcha, becuase, hamile database ko table ma UUID format ma id lai rakhi rako chau
+
+    if post_to_update.user_id != uuid.UUID(user_id):            
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Unauthorized action')
 
     post_query.update(post.dict(), synchronize_session=False)
-    db.commit()                                                 # saving the update/changes to the database
+    db.commit()                                                 
     db.refresh(post_to_update)
 
-    return post_to_update                                       # update gareko post lai return gareko
+    return post_to_update                                       
 
 
 
@@ -63,7 +62,7 @@ def get_post(id: str, db: Session = Depends(get_db), user_id: str = Depends(requ
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with this id: {id}, not found")
 
-    return post                         # single post lai as response return gareko
+    return post                       
 
 
 
@@ -76,11 +75,11 @@ def delete_post(id: str, db: Session = Depends(get_db), user_id: str = Depends(r
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Post with this id: {id}, not found')
 
-    if post.owner_id != user_id:                                # for checking if the user is owner of the post
+    if post.owner_id != user_id:                               
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Unauthorized action')
 
     post_query.delete(synchronize_session=False)
-    db.commit()                                                 # saving the update/changes to the database
+    db.commit()                                                 
 
-    return Response(status_code=status.HTTP_204_NO_CONTENT)     # object delete gari sake pachi, just 204 No Content status code matra as a response ko rup ma pathaincha
+    return Response(status_code=status.HTTP_204_NO_CONTENT)   
 

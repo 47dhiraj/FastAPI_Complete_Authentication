@@ -48,13 +48,13 @@ class PostBaseSchema(BaseModel):
         orm_mode = True
 
 
-class CreatePostSchema(PostBaseSchema):             # PostBaseSchema lai inherit gareko cha
+class CreatePostSchema(PostBaseSchema):             
     pass
 
 
-class PostResponse(PostBaseSchema):                 # PostBaseSchema lai inherit gareko cha
+class PostResponse(PostBaseSchema):                 
     id: uuid.UUID
-    user: FilteredUserResponse                      # FilteredUserResponse chai as nested pydantic model jasri use gareko, for sending nested json response
+    user: FilteredUserResponse                      
     created_at: datetime
     updated_at: datetime
 
@@ -73,5 +73,5 @@ class UpdatePostSchema(BaseModel):
 class ListPostResponse(BaseModel):
     status: str
     results: int
-    posts: List[PostResponse]                           # PostResponse chai as nested pydantic class jasari use vako cha, for sending nestied json response to the frontend
+    posts: List[PostResponse]                           
 

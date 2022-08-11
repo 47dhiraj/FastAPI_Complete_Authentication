@@ -18,7 +18,7 @@ class EmailSchema(BaseModel):
 
 
 class Email:
-    def __init__(self, user: models.User, url: str, email: List[EmailStr]): # sabai vanda pahila, __init__ i.e constructor function call huncha
+    def __init__(self, user: models.User, url: str, email: List[EmailStr]): 
         self.name = user.name
         self.sender = 'FastAPI Auth <dhirajkafle553@gmail.com>'
         self.email = email
@@ -61,5 +61,5 @@ class Email:
 
 
     async def sendVerificationCode(self):
-        await self.sendMail('Your verification code (Valid for 10min)', 'verification')     # mathi ko sendMail() vanni function lai call gareko
+        await self.sendMail('Your verification code (Valid for 10min)', 'verification')    
 

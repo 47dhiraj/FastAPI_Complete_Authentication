@@ -13,7 +13,7 @@ from ..config import settings
 from ..email import Email
 
 
-router = APIRouter()        # creating router object
+router = APIRouter()       
 
 ACCESS_TOKEN_EXPIRES_IN = settings.ACCESS_TOKEN_EXPIRES_IN
 REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
@@ -23,17 +23,14 @@ REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def create_user(payload: schemas.CreateUserSchema, request: Request, db: Session = Depends(get_db)):
 
-    # Check if user already exist
     user_query = db.query(models.User).filter(models.User.email == EmailStr(payload.email.lower()))
     user = user_query.first()
     if user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Account already exist')
 
-    # Compare password and passwordConfirm
     if payload.password != payload.passwordConfirm:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Passwords do not match')
 
-    #  Hash the password
     payload.password = utils.hash_password(payload.password)
     del payload.passwordConfirm
 
@@ -41,23 +38,22 @@ async def create_user(payload: schemas.CreateUserSchema, request: Request, db: S
     payload.verified = False
     payload.email = EmailStr(payload.email.lower())
 
-    new_user = models.User(**payload.dict())                    # yo line le new user object create garcha
+    new_user = models.User(**payload.dict())                  
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)                                        # latest create vayeko user object lai database batw fetch garera dincha
+    db.refresh(new_user)                                        
 
     try:
-        # Send Verification Email
         token = randbytes(10)
         hashedCode = hashlib.sha256()
         hashedCode.update(token)
         verification_code = hashedCode.hexdigest()
         user_query.update({'verification_code': verification_code}, synchronize_session=False)
-        db.commit()                                             # email send garna vanda pahila, user ko email verification code lai database ma save gareko
+        db.commit()                                             
 
         url = f"{request.url.scheme}://{request.client.host}:{request.url.port}/api/v1/auth/verifyemail/{token.hex()}"
 
-        await Email(new_user, url, [payload.email]).sendVerificationCode()      # yo line le email.py ko Email class ko constructor lai call garcha & then only, sendVerificationCode() vanni function lai call garcha
+        await Email(new_user, url, [payload.email]).sendVerificationCode()     
 
     except Exception as error:
         print('Error', error)
@@ -74,32 +70,25 @@ async def create_user(payload: schemas.CreateUserSchema, request: Request, db: S
 
 @router.post('/login')
 def login(payload: schemas.LoginUserSchema, response: Response, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    # Check if the user exist
     user = db.query(models.User).filter(models.User.email == EmailStr(payload.email.lower())).first()
 
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid Credentials')
 
-    # Check if user verified his email
     if not user.verified:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Please verify your account')
 
-    # Check if the password is valid
     if not utils.verify_password(payload.password, user.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid Credentials')
 
-    # Creating/Generating access token
-    access_token = Authorize.create_access_token(subject=str(user.id), expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
+    access_token = Authorize.create_access_token(subject=str(user.id), fresh=True, expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
 
-    # Creating/Generating refresh token
     refresh_token = Authorize.create_refresh_token(subject=str(user.id), expires_time=timedelta(minutes=REFRESH_TOKEN_EXPIRES_IN))
 
-    # Store refresh token in cookie
     response.set_cookie('refresh_token', refresh_token, REFRESH_TOKEN_EXPIRES_IN * 60, REFRESH_TOKEN_EXPIRES_IN * 60, '/', None, False, True, 'lax')
 
     response.set_cookie('logged_in', 'True', ACCESS_TOKEN_EXPIRES_IN * 60, ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, False, 'lax')
 
-    # sending access_token as json response to the frontend
     return {'status': 'success', 'access_token': access_token}
 
 
@@ -107,10 +96,10 @@ def login(payload: schemas.LoginUserSchema, response: Response, db: Session = De
 @router.get('/refresh')
 def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     try:
-        Authorize.jwt_refresh_token_required()              # surumai valid refresh token cha ki nai vanera check garcha
-        user_id = Authorize.get_jwt_subject()               # refresh token batw user_id lai grab garcha
+        Authorize.jwt_refresh_token_required()              
+        user_id = Authorize.get_jwt_subject()               
 
-        if not user_id:                                     # yedi user_id vetena vani
+        if not user_id:                                   
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Unauthorized/Invalid token')
 
         user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -118,10 +107,8 @@ def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Dep
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token or token expired')
 
-        # Creating/Generating new access token
-        access_token = Authorize.create_access_token(subject=str(user.id), expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
+        access_token = Authorize.create_access_token(subject=str(user.id), fresh=False, expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
 
-        # Creating/Generating new Refresh token
         refresh_token = Authorize.create_refresh_token(subject=str(user.id), expires_time=timedelta(minutes=REFRESH_TOKEN_EXPIRES_IN))
 
     except Exception as e:
@@ -131,12 +118,10 @@ def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Dep
 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    # Store refresh_token in cookie
     response.set_cookie('refresh_token', refresh_token, REFRESH_TOKEN_EXPIRES_IN * 60, REFRESH_TOKEN_EXPIRES_IN * 60, '/', None, False, True, 'lax')
 
     response.set_cookie('logged_in', 'True', ACCESS_TOKEN_EXPIRES_IN * 60, ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, False, 'lax')
 
-    # Sending access_token as json response
     return {'access_token': access_token}
 
 
@@ -144,7 +129,7 @@ def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Dep
 @router.get('/logout', status_code=status.HTTP_200_OK)
 def logout(response: Response, Authorize: AuthJWT = Depends(), user_id: str = Depends(oauth2.require_user)):
 
-    Authorize.unset_jwt_cookies()                           # removing the cookies(i.e refresh_token) from the frontend
+    Authorize.unset_jwt_cookies()                           
 
     response.set_cookie('logged_in', '', -1)
 
@@ -152,24 +137,23 @@ def logout(response: Response, Authorize: AuthJWT = Depends(), user_id: str = De
 
 
 
-@router.get('/verifyemail/{token}')                         # route for verifying the email address for newly registered user
+@router.get('/verifyemail/{token}')                         
 def verify_me(token: str, db: Session = Depends(get_db)):
 
     hashedCode = hashlib.sha256()
-    hashedCode.update(bytes.fromhex(token))                 # token ko help batw verification feri regenerate garcha
+    hashedCode.update(bytes.fromhex(token))                
     verification_code = hashedCode.hexdigest()
 
-    user_query = db.query(models.User).filter(models.User.verification_code == verification_code)   # user ko database ma vayeko verification code ra uta email ko url ma click garera re-generate vayeko verification code match huna parcha
-    # db.commit()
+    user_query = db.query(models.User).filter(models.User.verification_code == verification_code)  
 
     user = user_query.first()
 
     if not user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Email can only be verified once')
 
-    user_query.update({'verified': True, 'verification_code': None}, synchronize_session=False)     # yo line le user lai verify garcha & verfication_code lai database ma null set garcha
+    user_query.update({'verified': True, 'verification_code': None}, synchronize_session=False)     
 
-    db.commit()                 # saving the changes to the database
+    db.commit()                 
 
     return {
         "status": "success",

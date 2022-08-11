@@ -13,9 +13,9 @@ Base = declarative_base()
 
 
 def get_db():
-    db = SessionLocal()                     # db vannale, database session object/instance create gareko
+    db = SessionLocal()                     
     try:
         yield db
     finally:
-        db.close()                          # session lai close pani garna parcha
+        db.close()                         
 
